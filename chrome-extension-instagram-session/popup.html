@@ -1,0 +1,45 @@
+﻿<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Instagram Session Bridge</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <h1>Instagram Session Bridge</h1>
+      <p class="lead">Скачивает JSON с действующей Instagram-сессией для ScanerBlogers.</p>
+
+      <label class="field">
+        <span>Логин Instagram</span>
+        <input id="username" type="text" placeholder="например, leshaqt" autocomplete="username" />
+      </label>
+
+      <div class="actions">
+        <button id="readSessionButton" type="button">Прочитать sessionid</button>
+        <button id="copySessionButton" type="button" disabled>Скопировать sessionid</button>
+        <button id="downloadJsonButton" type="button" disabled>Скачать JSON</button>
+      </div>
+
+      <label class="field">
+        <span>Session ID</span>
+        <textarea id="sessionId" rows="4" readonly placeholder="Сначала нажмите «Прочитать sessionid»"></textarea>
+      </label>
+
+      <div id="status" class="status">Откройте instagram.com в этом браузере и войдите в аккаунт.</div>
+
+      <section class="help">
+        <strong>Как использовать</strong>
+        <ol>
+          <li>Войдите в нужный Instagram-аккаунт в этом браузере.</li>
+          <li>Нажмите «Прочитать sessionid».</li>
+          <li>Скачайте JSON.</li>
+          <li>Загрузите JSON на странице подключения Instagram в ScanerBlogers.</li>
+        </ol>
+      </section>
+    </main>
+
+    <script src="./popup.js"></script>
+  </body>
+</html>

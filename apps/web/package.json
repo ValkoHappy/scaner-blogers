@@ -1,0 +1,16 @@
+{
+  "name": "@scaner-blogers/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "next build --webpack",
+    "dev": "next dev",
+    "lint": "eslint .",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@scaner-blogers/core": "0.1.0",
+    "@scaner-blogers/db": "0.1.0"
+  }
+}

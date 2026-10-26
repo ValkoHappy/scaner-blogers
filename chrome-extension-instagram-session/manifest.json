@@ -1,0 +1,19 @@
+﻿{
+  "manifest_version": 3,
+  "name": "ScanerBlogers Instagram Session Bridge",
+  "version": "0.2.1",
+  "description": "Exports Instagram browser session JSON for ScanerBlogers.",
+  "permissions": [
+    "cookies",
+    "storage",
+    "activeTab",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://www.instagram.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Instagram Session Bridge"
+  }
+}

@@ -1,0 +1,2 @@
+-e vendor/instagram-instagrapi
+vk-api @ git+https://github.com/python273/vk_api.git@be724c218a74785094b3bb20e915d012fb3bec6a

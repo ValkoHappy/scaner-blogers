@@ -1,0 +1,559 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum CreativeFormat {
+  TEXT
+  IMAGE
+  VIDEO
+  UNKNOWN
+}
+
+enum AppStore {
+  GOOGLE_PLAY
+  APP_STORE
+  UNKNOWN
+}
+
+enum CreativeStatus {
+  ACTIVE
+  STOPPED
+  UNKNOWN
+}
+
+enum ScanStatus {
+  QUEUED
+  RUNNING
+  SUCCESS
+  FAILED
+  BLOCKED
+  CANCELED
+}
+
+enum ScanMode {
+  FAST
+  FULL
+  CAUTIOUS
+}
+
+enum GoogleHealthStatus {
+  OK
+  BLOCKED
+  PROBING
+  DEGRADED
+}
+
+enum ProxyStatus {
+  OK
+  BLOCKED
+  FAILED
+  CHALLENGE_REQUIRED
+  TIMEOUT
+}
+
+enum SocialPlatform {
+  INSTAGRAM
+  VK
+  YOUTUBE
+}
+
+enum CandidateStatus {
+  NEW
+  REVIEWED
+  PRIORITY
+  CONTACTED
+  REJECTED
+  SAVED
+}
+
+enum AssetKind {
+  LANDSCAPE_IMAGE
+  APP_ICON
+  SCREENSHOT
+  COVER_IMAGE
+  VIDEO
+  LANDING_URL
+}
+
+enum RawSnapshotKind {
+  SEARCH_CREATIVES
+  CREATIVE_DETAIL
+  PREVIEW_SCRIPT
+  API_EXPORT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Advertiser {
+  id                   String      @id @default(cuid())
+  googleAdvertiserId   String      @unique
+  name                 String?
+  transparencyUrl      String?
+  selectedCountries    Json        @default("[]")
+  lastScanAt           DateTime?
+  lastSuccessfulScanAt DateTime?
+  lastScanStatus       ScanStatus?
+  totalCreatives       Int         @default(0)
+  activeCreatives      Int         @default(0)
+  dailyScanEnabled     Boolean     @default(true)
+  scanMode             ScanMode?
+  requestDelayMs       Int?
+  maxPagesPerRun       Int?
+  maxCreativesPerRun   Int?
+  scanStartDate        String?
+  scanEndDate          String?
+  nextScanAt           DateTime?
+  notes                String?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  creatives            Creative[]
+  scanJobs             ScanJob[]
+  scans                Scan[]
+}
+
+model App {
+  id               String     @id @default(cuid())
+  appId            String
+  store            AppStore
+  storeUrl         String?
+  name             String?
+  developer        String?
+  category         String?
+  description      String?
+  shortDescription String?
+  firstSeenAt      DateTime   @default(now())
+  lastSeenAt       DateTime   @default(now())
+  creatives        Creative[]
+
+  @@unique([store, appId])
+}
+
+model Creative {
+  id             String            @id @default(cuid())
+  creativeId     String            @unique
+  advertiserId   String
+  appDbId        String?
+  format         CreativeFormat    @default(UNKNOWN)
+  status         CreativeStatus    @default(UNKNOWN)
+  previewUrl     String?
+  firstShownAt   DateTime?
+  lastShownAt    DateTime?
+  publicDays     Int?
+  impressionsMin Int?
+  impressionsMax Int?
+  firstFoundAt   DateTime          @default(now())
+  lastFoundAt    DateTime          @default(now())
+  rawList        Json?
+  rawDetail      Json?
+  rawPreview     Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  advertiser     Advertiser        @relation(fields: [advertiserId], references: [id], onDelete: Cascade)
+  app            App?              @relation(fields: [appDbId], references: [id])
+  assets         CreativeAsset[]
+  countries      CreativeCountry[]
+  rawSnapshots   RawApiSnapshot[]
+}
+
+model CreativeAsset {
+  id         String    @id @default(cuid())
+  creativeId String
+  kind       AssetKind
+  url        String
+  width      Int?
+  height     Int?
+  createdAt  DateTime  @default(now())
+  creative   Creative  @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+
+  @@unique([creativeId, kind, url])
+}
+
+model CreativeCountry {
+  id             String   @id @default(cuid())
+  creativeId     String
+  googleGeoId    Int
+  countryCode    String?
+  countryName    String?
+  impressionsMin Int?
+  impressionsMax Int?
+  firstShownDate String?
+  lastShownDate  String?
+  raw            Json?
+  updatedAt      DateTime @updatedAt
+  creative       Creative @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+
+  @@unique([creativeId, googleGeoId])
+  @@index([countryCode])
+}
+
+model ScanJob {
+  id                 String      @id @default(cuid())
+  advertiserId       String
+  status             ScanStatus  @default(QUEUED)
+  scanMode           ScanMode    @default(FULL)
+  scheduledFor       DateTime    @default(now())
+  startedAt          DateTime?
+  finishedAt         DateTime?
+  errorMessage       String?
+  pagesFetched       Int         @default(0)
+  creativesFound     Int         @default(0)
+  detailsFetched     Int         @default(0)
+  previewsFetched    Int         @default(0)
+  blockedReason      String?
+  requestDelayMs     Int?
+  maxPagesPerRun     Int?
+  maxCreativesPerRun Int?
+  scanStartDate      String?
+  scanEndDate        String?
+  nextPageToken      String?
+  currentCountryCode String?
+  chunkStartedAt     DateTime?
+  completedCountries Json        @default("[]")
+  retryOfJobId       String?
+  cancelRequested    Boolean     @default(false)
+  countries          Json        @default("[]")
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  advertiser         Advertiser  @relation(fields: [advertiserId], references: [id], onDelete: Cascade)
+  scans              Scan[]
+  events             ScanEvent[]
+}
+
+model Scan {
+  id              String      @id @default(cuid())
+  advertiserId    String
+  scanJobId       String?
+  status          ScanStatus  @default(RUNNING)
+  scanMode        ScanMode    @default(FULL)
+  startedAt       DateTime    @default(now())
+  finishedAt      DateTime?
+  pagesFetched    Int         @default(0)
+  creativesFound  Int         @default(0)
+  newCreatives    Int         @default(0)
+  detailsFetched  Int         @default(0)
+  previewsFetched Int         @default(0)
+  blockedReason   String?
+  errorMessage    String?
+  advertiser      Advertiser  @relation(fields: [advertiserId], references: [id], onDelete: Cascade)
+  scanJob         ScanJob?    @relation(fields: [scanJobId], references: [id], onDelete: SetNull)
+  events          ScanEvent[]
+}
+
+model ScanEvent {
+  id        String   @id @default(cuid())
+  scanJobId String?
+  scanId    String?
+  level     String
+  message   String
+  data      Json?
+  createdAt DateTime @default(now())
+  scanJob   ScanJob? @relation(fields: [scanJobId], references: [id], onDelete: Cascade)
+  scan      Scan?    @relation(fields: [scanId], references: [id], onDelete: Cascade)
+}
+
+model RawApiSnapshot {
+  id         String          @id @default(cuid())
+  creativeId String?
+  kind       RawSnapshotKind
+  url        String?
+  payload    Json
+  createdAt  DateTime        @default(now())
+  creative   Creative?       @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+
+  @@index([kind])
+}
+
+model SearchKeyword {
+  id              String             @id @default(cuid())
+  value           String
+  normalizedValue String             @unique
+  topic           String?
+  enabled         Boolean            @default(true)
+  platforms       Json               @default("[\"INSTAGRAM\"]")
+  countries       Json               @default("[\"RU\",\"KZ\"]")
+  minFollowers    Int                @default(20000)
+  maxFollowers    Int                @default(60000)
+  instagramMinFollowers Int?
+  instagramMaxFollowers Int?
+  vkMinFollowers        Int?
+  vkMaxFollowers        Int?
+  youtubeMinFollowers   Int?
+  youtubeMaxFollowers   Int?
+  hashtags        Json               @default("[]")
+  notes           String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  jobs            CollectionJob[]
+  profiles        CandidateProfile[]
+  searchHistory   CollectionSearchHistory[]
+
+  @@index([enabled])
+}
+
+model Candidate {
+  id           String             @id @default(cuid())
+  displayName  String?
+  status       CandidateStatus    @default(NEW)
+  topics       Json               @default("[]")
+  countries    Json               @default("[]")
+  contacts     Json?
+  notes        String?
+  reviewedAt   DateTime?
+  priorityAt   DateTime?
+  contactedAt  DateTime?
+  rejectedAt   DateTime?
+  savedAt      DateTime?
+  exportedAt   DateTime?
+  firstFoundAt DateTime           @default(now())
+  lastFoundAt  DateTime           @default(now())
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  profiles     CandidateProfile[]
+
+  @@index([status])
+  @@index([lastFoundAt])
+}
+
+model CandidateProfile {
+  id                String              @id @default(cuid())
+  candidateId       String
+  keywordId         String?
+  collectionRunId   String?
+  platform          SocialPlatform
+  platformProfileId String
+  username          String
+  displayName       String?
+  profileUrl        String
+  followers         Int
+  bio               String?
+  externalUrl       String?
+  contacts          Json?
+  sourceKeyword     String?
+  sourceTag         String?
+  matchedBy         String?
+  geoGuess          String?
+  reason            String?
+  qualityScore      Int                 @default(0)
+  qualitySignals    Json?
+  metrics           Json?
+  lastPosts         Json?
+  raw               Json?
+  firstFoundAt      DateTime            @default(now())
+  lastCollectedAt   DateTime            @default(now())
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  candidate         Candidate           @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  keyword           SearchKeyword?      @relation(fields: [keywordId], references: [id], onDelete: SetNull)
+  collectionRun     CollectionRun?      @relation(fields: [collectionRunId], references: [id], onDelete: SetNull)
+  rawSnapshots      RawSocialSnapshot[]
+
+  @@unique([platform, platformProfileId])
+  @@index([platform, username])
+  @@index([followers])
+  @@index([qualityScore])
+  @@index([lastCollectedAt])
+}
+
+model CollectionJob {
+  id              String            @id @default(cuid())
+  keywordId       String?
+  platform        SocialPlatform
+  configHash      String?
+  status          ScanStatus        @default(QUEUED)
+  scheduledFor    DateTime          @default(now())
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  errorMessage    String?
+  blockedReason   String?
+  minFollowers    Int               @default(20000)
+  maxFollowers    Int               @default(60000)
+  countries       Json              @default("[\"RU\",\"KZ\"]")
+  hashtags        Json              @default("[]")
+  requestDelayMs  Int?
+  maxProfiles     Int?
+  candidatesFound Int               @default(0)
+  profilesChecked Int               @default(0)
+  config          Json?
+  retryOfJobId    String?
+  cancelRequested Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  keyword         SearchKeyword?    @relation(fields: [keywordId], references: [id], onDelete: SetNull)
+  runs            CollectionRun[]
+  events          CollectionEvent[]
+  searchHistory   CollectionSearchHistory[]
+
+  @@index([status, scheduledFor])
+  @@index([platform])
+  @@index([platform, status, configHash])
+}
+
+model CollectionRun {
+  id              String              @id @default(cuid())
+  collectionJobId String
+  platform        SocialPlatform
+  status          ScanStatus          @default(RUNNING)
+  startedAt       DateTime            @default(now())
+  finishedAt      DateTime?
+  candidatesFound Int                 @default(0)
+  profilesChecked Int                 @default(0)
+  errorMessage    String?
+  blockedReason   String?
+  collectionJob   CollectionJob       @relation(fields: [collectionJobId], references: [id], onDelete: Cascade)
+  profiles        CandidateProfile[]
+  events          CollectionEvent[]
+  rawSnapshots    RawSocialSnapshot[]
+  searchHistory   CollectionSearchHistory[]
+
+  @@index([platform, startedAt])
+  @@index([status])
+}
+
+model CollectionSearchHistory {
+  id                  String         @id @default(cuid())
+  keywordId           String?
+  collectionJobId     String?
+  collectionRunId     String?
+  platform            SocialPlatform
+  query               String
+  queryType           String
+  regionCode          String
+  searches            Int            @default(0)
+  lastItemsFound      Int?
+  lastProfilesChecked Int?
+  lastError           String?
+  lastSearchedAt      DateTime       @default(now())
+  firstSearchedAt     DateTime       @default(now())
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  keyword             SearchKeyword? @relation(fields: [keywordId], references: [id], onDelete: SetNull)
+  collectionJob       CollectionJob? @relation(fields: [collectionJobId], references: [id], onDelete: SetNull)
+  collectionRun       CollectionRun? @relation(fields: [collectionRunId], references: [id], onDelete: SetNull)
+
+  @@unique([platform, query, queryType, regionCode])
+  @@index([platform, lastSearchedAt])
+  @@index([keywordId])
+}
+
+model CollectionEvent {
+  id              String         @id @default(cuid())
+  collectionJobId String?
+  collectionRunId String?
+  level           String
+  message         String
+  data            Json?
+  createdAt       DateTime       @default(now())
+  collectionJob   CollectionJob? @relation(fields: [collectionJobId], references: [id], onDelete: Cascade)
+  collectionRun   CollectionRun? @relation(fields: [collectionRunId], references: [id], onDelete: Cascade)
+
+  @@index([collectionJobId])
+  @@index([collectionRunId])
+  @@index([createdAt])
+}
+
+model RawSocialSnapshot {
+  id                 String            @id @default(cuid())
+  candidateProfileId String?
+  collectionRunId    String?
+  platform           SocialPlatform
+  kind               String
+  url                String?
+  payload            Json
+  createdAt          DateTime          @default(now())
+  candidateProfile   CandidateProfile? @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+  collectionRun      CollectionRun?    @relation(fields: [collectionRunId], references: [id], onDelete: Cascade)
+
+  @@index([platform, kind])
+  @@index([createdAt])
+}
+
+model SocialPlatformAccount {
+  id                String         @id @default(cuid())
+  platform          SocialPlatform
+  accountKey        String         @unique
+  label             String?
+  username          String?
+  status            String         @default("UNKNOWN")
+  blockedUntil      DateTime?
+  lastLoginAt       DateTime?
+  lastSuccessAt     DateTime?
+  lastErrorAt       DateTime?
+  lastError         String?
+  consecutiveErrors Int            @default(0)
+  metadata          Json?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([platform, status])
+  @@index([blockedUntil])
+}
+
+model SystemSettings {
+  id                       String   @id @default("default")
+  vkAppId                  String?
+  defaultCountries         Json     @default("[]")
+  scanMode                 ScanMode @default(FULL)
+  dailyScanHour            Int      @default(3)
+  scheduleType             String   @default("DAILY")
+  dailyScanHours           Json     @default("[3]")
+  scanIntervalHours        Int?
+  requestDelayMs           Int      @default(1000)
+  maxPagesPerRun           Int?
+  maxCreativesPerRun       Int?
+  workerConcurrency        Int      @default(1)
+  advertiserDelayMs        Int      @default(60000)
+  probeIntervalMs          Int      @default(3600000)
+  rawSnapshotRetentionDays Int      @default(30)
+  scanEventRetentionDays   Int      @default(60)
+  exportDefaultFields      Json     @default("[\"creativeId\",\"advertiserName\",\"appName\",\"store\",\"format\",\"status\",\"countries\",\"publicDays\",\"firstShownAt\",\"lastShownAt\",\"impressions\"]")
+  proxyEnabled             Boolean  @default(false)
+  proxyUrl                 String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+model WorkerHeartbeat {
+  id         String   @id @default("default")
+  status     String
+  pid        Int?
+  message    String?
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model GoogleHealth {
+  id                String             @id @default("default")
+  status            GoogleHealthStatus @default(OK)
+  blockedUntil      DateTime?
+  lastProbeAt       DateTime?
+  lastSuccessAt     DateTime?
+  consecutiveBlocks Int                @default(0)
+  lastError         String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model ProxyEndpoint {
+  id           String      @id @default(cuid())
+  url          String      @unique
+  status       ProxyStatus @default(OK)
+  lastUsedAt   DateTime?
+  blockedUntil DateTime?
+  failCount    Int         @default(0)
+  lastError    String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}

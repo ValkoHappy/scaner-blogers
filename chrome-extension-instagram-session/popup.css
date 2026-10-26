@@ -1,0 +1,130 @@
+﻿body {
+  margin: 0;
+  min-width: 390px;
+  background: #101826;
+  color: #e6edf7;
+  font: 13px/1.4 "Segoe UI", Arial, sans-serif;
+}
+
+.popup {
+  padding: 16px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.lead {
+  margin: 0 0 14px;
+  color: #9db0ca;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.tab {
+  background: #142235;
+  color: #c9d8eb;
+}
+
+.tab.active {
+  background: #5da2ff;
+  color: #08111f;
+}
+
+.panel {
+  display: none;
+}
+
+.panel.active {
+  display: block;
+}
+
+.field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.field span {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+input,
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #314056;
+  border-radius: 8px;
+  background: #111c2d;
+  color: #e6edf7;
+  padding: 10px 12px;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 88px;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  background: #5da2ff;
+  color: #08111f;
+  padding: 10px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button[disabled] {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.status {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #142235;
+  color: #c9d8eb;
+}
+
+.status.error {
+  background: #351824;
+  color: #ffb8c7;
+}
+
+.status.success {
+  background: #132a22;
+  color: #aee7cb;
+}
+
+.help {
+  border-top: 1px solid #233246;
+  padding-top: 12px;
+  color: #9db0ca;
+}
+
+.help strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #e6edf7;
+}
+
+.help ol {
+  margin: 0;
+  padding-left: 18px;
+}
